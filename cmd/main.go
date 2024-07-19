@@ -19,18 +19,6 @@ func (s *ServerConnectionsHandler) status() {
 }
 
 func (s *ServerConnectionsHandler) broadCast(message string) {
-
-	/*
-	   for conn, active := range s.connections {
-
-	       if !active {
-	           continue
-	       }
-
-	       conn.Write([]byte(message))
-	   }
-	*/
-
 	byteMessage := []byte(message)
 
 	for conn := range s.connections {
@@ -44,16 +32,12 @@ func (s *ServerConnectionsHandler) broadCast(message string) {
 }
 
 func (s *ServerConnectionsHandler) HandleWsConnections(conn *websocket.Conn) {
-	//_, ok := s.connections[conn]
-	//if !ok {
-	//	s.connections[conn] = true
-	//	s.connectionsCount += 1
-	//	s.status()
-	//}
+
 	s.connections[conn] = true
 	s.connectionsCount += 1
 	s.status()
-
+	conn.Write([]byte("Welcome to the server " + conn.RemoteAddr().String()))
+	s.broadCast("New user connected: " + conn.RemoteAddr().String())
 	//watch for messages
 	s.readLoop(conn)
 
@@ -73,9 +57,8 @@ func (s *ServerConnectionsHandler) readLoop(conn *websocket.Conn) {
 		}
 
 		msg := buffer[:length]
-		conn.Write([]byte("Thank you for the message"))
 		fmt.Printf("Client %s say: %s\n", conn.RemoteAddr(), string(msg))
-        s.broadCast(string(msg))
+		s.broadCast(string("Client " + conn.RemoteAddr().String() + " say: " + string(msg)))
 	}
 }
 
@@ -84,7 +67,8 @@ func CreateConnectionsHandler() *ServerConnectionsHandler {
 }
 
 func main() {
-
+	fs := http.FileServer(http.Dir("./view"))
+	http.Handle("/", fs)
 	handler := CreateConnectionsHandler()
 
 	fmt.Println("Starting webserver on port: 3000")
